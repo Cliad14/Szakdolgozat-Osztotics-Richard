@@ -44,7 +44,7 @@ class DB:
         
     def check_user_match(self, user):
         mycursor = self.db.cursor()
-        sql = "Select * FROM users WHERE mail = %s"
+        sql = "Select * FROM users WHERE mail = %s LIMIT 1"
         mail = (user.mail,)
         mycursor.execute(sql, mail)
         
