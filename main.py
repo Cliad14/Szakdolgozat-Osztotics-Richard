@@ -43,6 +43,15 @@ for user in destination_users:
 
 new_project_id = destination_server.get_project_id(identifier)
 print("upload issues")
-destination_server.upload_issues(source_project.issues, new_project_id, db)
 
-db.drop_database()
+destination_server.initialite_issue(new_project_id)
+next_issue_id = destination_server.get_largest_issue_id() + 1
+
+for issue in source_project.issues:
+    db.upload_issue_to_db(issue, next_issue_id)
+    next_issue_id += 1
+
+destination_server.create_issues(source_project.issues, new_project_id)
+destination_server.upload_issues(source_project.issues, db)
+
+# db.drop_database()

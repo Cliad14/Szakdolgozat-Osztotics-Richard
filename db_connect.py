@@ -24,6 +24,7 @@ class DB:
     def create_tables(self):
         mycursor = self.db.cursor()
         mycursor.execute("CREATE TABLE IF NOT EXISTS users (old_id INT(255), mail VARCHAR(255), new_id INT(255))")
+        mycursor.execute("CREATE TABLE IF NOT EXISTS issues (old_id INT(255), new_id INT(255))")
     
     def drop_database(self):
         mycursor = self.db.cursor()
@@ -31,9 +32,7 @@ class DB:
     
     def upload_user_to_db(self, user):
         mycursor = self.db.cursor()
-        print(user.id)
-        print(user.mail)
-    
+        
         sql = "INSERT INTO users (old_id, mail) VALUES (%s, %s)"
         val = (user.id, user.mail)
         mycursor.execute(sql, val)
@@ -68,6 +67,34 @@ class DB:
         id = (old_id, )
         mycursor.execute(sql, id)
         
+        result = mycursor.fetchall()
+        
+        return result[0][0]
+    
+    def upload_issue_to_db(self, issue, new_id):
+        mycursor = self.db.cursor()
+        
+        sql = "INSERT INTO issues (old_id, new_id) VALUES (%s, %s)"
+        val = (issue.id, new_id)
+        mycursor.execute(sql, val)
+    
+        self.db.commit()
+        
+        print(mycursor.rowcount, "record inserted.")
+        
+    def update_issue_id(self, issue):
+        mycursor = self.db.cursor()
+        
+        sql = "Select new_id FROM issues WHERE old_id = %s LIMIT 1"
+        
+        try:
+            id = (issue.parent.id, )
+        except:
+            print("Itt a gond-----------------------")
+           
+            return None
+        
+        mycursor.execute(sql, id)
         result = mycursor.fetchall()
         
         return result[0][0]
