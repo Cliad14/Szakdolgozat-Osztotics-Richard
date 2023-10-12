@@ -52,6 +52,6 @@ for issue in source_project.issues:
     next_issue_id += 1
 
 destination_server.create_issues(source_project.issues, new_project_id)
-destination_server.upload_issues(source_project.issues, db)
+destination_server.upload_issues(source_project.issues, destination_project.issues, db)
 
-# db.drop_database()
+db.drop_database()

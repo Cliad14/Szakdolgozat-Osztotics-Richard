@@ -17,30 +17,29 @@ class TaskManager:
         project.homepage = old_project.homepage
         project.is_public = old_project.is_public
         project.inherit_members = old_project.inherit_members
-        # project.parent.id = 345 #?????
-        # project.custom_fields = [{'id': 1, 'value': 'foo'}, {'id': 2, 'value': 'bar'}] #????
+        # project.custom_fields = [{'id': 1, 'value': 'foo'}, {'id': 2, 'value': 'bar'}] 
         project.save()
         return project.identifier
 
-    def upload_issues(self, issues, db):
-        for issue in issues:
-            
-            print(issue)
-            
+    def upload_issues(self, old_issues, new_issues, db):
+        for old_issue in old_issues:
             try:
-                new_user_id = db.get_user_new_id(issue.assigned_to.id)
+                new_user_id = db.get_user_new_id(old_issue.assigned_to.id)
             except:
                 new_user_id = None
                 
-            new_parent_id = db.update_issue_id(issue)
+            new_parent_id = db.update_issue_id(old_issue)
             
-            self.upload_issue(issue, new_user_id, new_parent_id)
+            for new_issue in new_issues:
+                if old_issue.subject == new_issue.subject and old_issue.description == new_issue.description:
+                    issue_id = new_issue.id
+            
+            self.upload_issue(old_issue, new_user_id, new_parent_id, issue_id)
     
-    def upload_issue(self, old_issue, new_user_id, new_parent_id):
+    def upload_issue(self, old_issue, new_user_id, new_parent_id, issue_id):
         self._redmine.issue.update(
-            #issue id,
+            issue_id,
             tracker_id = old_issue.tracker.id,
-            description = old_issue.description,
             status_id = old_issue.status.id,
             priority_id = old_issue.status.id,
             assigned_to_id = new_user_id,
@@ -59,6 +58,7 @@ class TaskManager:
             issue = self._redmine.issue.new()
             issue.project_id = new_project_id 
             issue.subject = old_issue.subject 
+            issue.description = old_issue.description
             issue.save()
         
     def initialite_issue(self, project_id):

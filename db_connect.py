@@ -90,8 +90,6 @@ class DB:
         try:
             id = (issue.parent.id, )
         except:
-            print("Itt a gond-----------------------")
-           
             return None
         
         mycursor.execute(sql, id)
