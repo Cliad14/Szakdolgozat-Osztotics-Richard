@@ -1,14 +1,14 @@
 {
     "source": {
-        "ip": "http://192.168.8.74",
-        "username": "user",
-        "password": "asdasdasd",
-        "identifier": "teszt-projekt"
+        "ip": "",
+        "username": "",
+        "password": "",
+        "identifier": ""
     },
     "destination": {
-        "ip": "http://192.168.8.74",
-        "username": "user",
-        "password": "asdasdasd",
-        "identifier": "migration-of-test-projekt"
+        "ip": "",
+        "username": "",
+        "password": "",
+        "identifier": ""
     }
 }
