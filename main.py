@@ -1,57 +1,45 @@
 from task_manager import TaskManager
-from db_connect import DB
+import json
 
+with open('./resources/redmines.json') as redmines_file:
+    redmines_json = json.load(redmines_file)
+source = redmines_json["source"]
+destination = redmines_json["destination"]
 
-# get the ip/web, username , password
-# src_web = input("Please enter source Redmine's web: ")
-# src_uname = input("Please enter source username: ")
-# src_pwd = input("Please enter source password: ")
+with open('./resources/users.json') as users_file:
+    users_json = json.load(users_file)
+users_ids = users_json["users"]
 
-# get the project azonosító
-# src_identifier = input("Please enter source project's identifier: ")
-print("connect source project")
-#server = TaskManager(src_web, src_uname, src_pwd)
-soruce_server = TaskManager('http://192.168.8.28', 'user', 'asdasdasd')
-# sourceProject = soruce_server.redmine.get(src_identifier)
-source_project = soruce_server.redmine.project.get('elso-teszt-projekt') # list(redmine.project.get('vacation')) -> return all the attributes w values ('attr', 'val')
+with open('./resources/trackers.json') as trackers_file:
+    trackers_json = json.load(trackers_file)
+tracker_ids = trackers_json["trackers"]
 
-print("initialize database")
-db = DB("127.0.0.1","user", "asdasd")
-db.connect_db()
-db.create_tables()
+with open('./resources/status.json') as statuses_file:
+    statuses_json = json.load(statuses_file)
+status_ids = statuses_json["statuses"]
+     
+soruce_server = TaskManager(source["ip"], source["username"], source["password"])
+source_project = soruce_server.redmine.project.get(source["identifier"]) # list(redmine.project.get('vacation')) -> return all the attributes w values ('attr', 'val')
 
-print("get source users")
-source_users = soruce_server.redmine.user.all()
-for user in source_users:
-    db.upload_user_to_db(user)
+destination_server = TaskManager(destination["ip"], destination["username"], destination["password"])
 
-# dest_web = input("Please enter destination Redmine's web: ")
-# dest_uname = input("Please enter destination username: ")
-# dest_pwd = input("Please enter destination password: ")
-print("connect destination project")
-# destination_server = TaskManager(dest_web, dest_uname, dest_pwd)
-destination_server = TaskManager('http://192.168.8.28', 'user', 'asdasdasd')
-print("create new project")
-identifier = destination_server.create_new_project_in_Redmine(source_project)
-destination_project = destination_server.redmine.project.get(identifier)
+if destination["identifier"] == "":
+    destination["identifier"] = destination_server.create_new_project_in_Redmine(source_project, source["identifier"])
+###
+else:    
+    destination_server.create_new_project_in_Redmine(source_project, destination["identifier"]) # this is for the test. If the identifier does not set it will be created. if its set dont need to create
+###    
+destination_project = destination_server.redmine.project.get(destination["identifier"])
 
-print("get destination users")
-destination_users = destination_server.redmine.user.all()
-for user in destination_users:
-    db.check_user_match(user)
-# #if there's no such user ? create / skip?
+new_project_id = destination_server.get_project_id(destination["identifier"]) # TODO: paramétert meg kell nézni még, mert lehet, hogy nem ez kell
 
-new_project_id = destination_server.get_project_id(identifier)
-print("upload issues")
-
-destination_server.initialite_issue(new_project_id)
+destination_server.initialize_issue(new_project_id)
 next_issue_id = destination_server.get_largest_issue_id() + 1
 
+issue_ids = {}
 for issue in source_project.issues:
-    db.upload_issue_to_db(issue, next_issue_id)
+    issue_ids[issue.id] = next_issue_id
     next_issue_id += 1
 
 destination_server.create_issues(source_project.issues, new_project_id)
-destination_server.upload_issues(source_project.issues, destination_project.issues, db)
-
-db.drop_database()
+destination_server.upload_issues(source_project.issues, destination_project.issues, users_ids, issue_ids, tracker_ids, status_ids)
