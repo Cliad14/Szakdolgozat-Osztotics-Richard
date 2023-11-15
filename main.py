@@ -14,12 +14,14 @@ with open('./resources/trackers.json') as trackers_file:
     trackers_json = json.load(trackers_file)
 tracker_ids = trackers_json["trackers"]
 
-with open('./resources/status.json') as statuses_file:
+with open('./resources/statuses.json') as statuses_file:
     statuses_json = json.load(statuses_file)
 status_ids = statuses_json["statuses"]
      
-soruce_server = TaskManager(source["ip"], source["username"], source["password"])
-source_project = soruce_server.redmine.project.get(source["identifier"]) # list(redmine.project.get('vacation')) -> return all the attributes w values ('attr', 'val')
+source_server = TaskManager(source["ip"], source["username"], source["password"])
+source_project = source_server.redmine.project.get(source["identifier"])
+
+issue_historys = source_server.get_historys(source_project)
 
 destination_server = TaskManager(destination["ip"], destination["username"], destination["password"])
 
@@ -31,7 +33,7 @@ else:
 ###    
 destination_project = destination_server.redmine.project.get(destination["identifier"])
 
-new_project_id = destination_server.get_project_id(destination["identifier"]) # TODO: paramétert meg kell nézni még, mert lehet, hogy nem ez kell
+new_project_id = destination_server.get_project_id(destination["identifier"])
 
 destination_server.initialize_issue(new_project_id)
 next_issue_id = destination_server.get_largest_issue_id() + 1
