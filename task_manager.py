@@ -92,6 +92,14 @@ class TaskManager:
     def get_custom_fields(self):
         return self._redmine.custom_field.all()
 
+    def get_historys(self, project):
+        historys = {}
+        
+        for issue in project.issues:
+            historys[issue.id] = issue.journals
+
+        return historys
+
     @property    
     def ip(self) -> Any:
         return self._ip
