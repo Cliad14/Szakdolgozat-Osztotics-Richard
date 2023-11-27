@@ -43,5 +43,7 @@ for issue in source_project.issues:
     issue_ids[issue.id] = next_issue_id
     next_issue_id += 1
 
+# Amit nem az issue létrehozásakor állítok be, hanem utána az benne lesz a history-ban. Viszont nem lehet mindent beállítani a létrehozáskor (pl.: parent_id, estimated_hours).
 destination_server.create_issues(source_project.issues, new_project_id)
-destination_server.upload_issues(source_project.issues, destination_project.issues, users_ids, issue_ids, tracker_ids, status_ids)
+destination_server.upload_history(source_project.issues, issue_historys, tracker_ids, status_ids, issue_ids, users_ids)
+destination_server.check_for_parents(source_project.issues, issue_ids, users_ids, tracker_ids, status_ids)
