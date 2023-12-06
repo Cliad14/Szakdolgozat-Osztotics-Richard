@@ -64,6 +64,7 @@ class TaskManager:
                         is_set = True
                 if not is_set:
                     self.upload_attachment(issue, attachment)
+                    issue.save()
             
     def create_issues(self, issues, new_project_id):
         for old_issue in issues:
@@ -88,30 +89,33 @@ class TaskManager:
         issue.subject = "Init issue for migration"
         issue.save() 
         
-    def get_largest_issue_id(self):
+    def get_new_issue_ids(self, src_issues):
         issues = self.redmine.issue.filter(
             status_id='*'
         )
         issue = issues[0]
         
         if issue.subject == "Init issue for migration":
-            return issue.id    
-        
-    def get_project_id(self, identifier):
-        return self._redmine.project.get(identifier).id
+            next_issue_id = issue.id + 1    
+            issue_ids = {}
+            for issue in src_issues:
+                issue_ids[issue.id] = next_issue_id
+                next_issue_id += 1
+            return issue_ids
 
-    def get_historys(self, project):
-        historys = {}
+
+    def get_journals(self, project):
+        journals = {}
         for issue in project.issues:
-            historys[issue.id] = issue.journals
-        return historys
+            journals[issue.id] = issue.journals
+        return journals
 
-    def upload_historys(self, issues, historys, tracker_ids, status_ids, issue_ids, user_ids):
+    def upload_historys(self, issues, journals, tracker_ids, status_ids, issue_ids, user_ids):
         for issue in issues:
-            for history in historys[issue.id]:
+            for journal in journals[issue.id]:
                 redmine_issue = self.redmine.issue.get(issue_ids[issue.id])
                 isUpdated = False
-                for detail in history.details:
+                for detail in journal.details:
                     if detail["property"] == "attachment":
                         for attachment in issue.attachments:
                             if str(attachment.id) == detail["name"]:
@@ -119,6 +123,7 @@ class TaskManager:
                     if self.updater(redmine_issue, detail["name"], detail["new_value"], tracker_ids, status_ids, user_ids, issue_ids):
                         isUpdated = True
                 if isUpdated:
+                    redmine_issue.notes = str(issue.id) + ":" + str(journal["id"])
                     redmine_issue.save()
                
     def upload_attachment(self, issue, attachment):
@@ -140,7 +145,7 @@ class TaskManager:
         
         # update issue with the token
         issue.uploads = [{"token": token, "filename": filename, "content_type": content_type, "description": description}]
-        issue.save()
+        
           
     def updater(self, issue, name, value, tracker_ids, status_ids, user_ids, issue_ids):        
         if name == "tracker_id":
@@ -176,13 +181,17 @@ class TaskManager:
             return False
         return True
     
-    def update_journals(self, host, user, pwd, database, issues, issue_historys, issue_ids, users_ids):
-        database = DB(host, user, pwd, database)
-        
-        for issue in issues:
-            for history in issue_historys:
-                database.update_journal(history["created_on"], users_ids[history["user"]["id"]], issue_ids[issue.id])
-
+    def update_journals(self, database, original_journals, users_ids, new_issues):
+        database = DB(database["host"], database["user"], database["password"], database["database"])
+        for new_issue in new_issues:
+            for new_journal in new_issue.journals:
+                if new_journal["notes"] != "":
+                    notes = new_journal["notes"].split(":")
+                    o_issue_id = int(notes[0])
+                    o_journal_id = int(notes[1])-1
+                    journal = original_journals[o_issue_id][o_journal_id]
+                    database.update_journal(journal["created_on"], users_ids[str(journal["user"]["id"])], new_journal["id"])
+                
     @property    
     def ip(self) -> Any:
         return self._ip
