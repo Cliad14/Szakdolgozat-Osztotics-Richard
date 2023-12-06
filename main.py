@@ -45,5 +45,11 @@ for issue in source_project.issues:
 
 # Amit nem az issue létrehozásakor állítok be, hanem utána az benne lesz a history-ban. Viszont nem lehet mindent beállítani a létrehozáskor (pl.: parent_id, estimated_hours).
 destination_server.create_issues(source_project.issues, new_project_id)
-destination_server.upload_history(source_project.issues, issue_historys, tracker_ids, status_ids, issue_ids, users_ids)
-destination_server.check_for_parents(source_project.issues, issue_ids, users_ids, tracker_ids, status_ids)
+destination_server.upload_historys(source_project.issues, issue_historys, tracker_ids, status_ids, issue_ids, users_ids)
+destination_server.update_issues(source_project.issues, issue_ids, users_ids, tracker_ids, status_ids)
+
+with open('./resources/database.json') as db_file:
+    db_json = json.load(db_file)
+database = db_json["database"]
+
+destination_server.update_journals(database["host"], database["user"], database["password"], database["database"], source_project.issues, issue_historys, issue_ids, users_ids)

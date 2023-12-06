@@ -1,5 +1,9 @@
+from db import DB
 from typing import Any
 from redminelib import Redmine
+import requests
+import json
+
 
 class TaskManager:
     
@@ -20,13 +24,12 @@ class TaskManager:
         project.save()
         return project.identifier
 
-    def check_for_parents(self, old_issues, issue_ids,  user_ids, tracker_ids, status_ids):
+    def update_issues(self, old_issues, issue_ids,  user_ids, tracker_ids, status_ids):
         for old_issue in old_issues:
             try:    
                 new_parent_id = issue_ids[old_issue.parent.id]
             except:
                 new_parent_id = None
-            
             try:
                 new_user_id = user_ids[str(old_issue.assigned_to.id)]
             except:
@@ -49,9 +52,18 @@ class TaskManager:
                 start_date = old_issue.start_date,
                 done_ratio = old_issue.done_ratio,
                 is_private = old_issue.is_private,
-                parent_issue_id = new_parent_id
-            )            
+                parent_issue_id = new_parent_id,
+                estimated_hours = old_issue.estimated_hours
+            )
             
+            issue = self._redmine.issue.get(issue_ids[old_issue.id])
+            for attachment in old_issue.attachments:
+                is_set = False
+                for attach in issue.attachments:
+                    if attachment.filename == attach.filename and attachment.filesize == attach.filesize:
+                        is_set = True
+                if not is_set:
+                    self.upload_attachment(issue, attachment)
             
     def create_issues(self, issues, new_project_id):
         for old_issue in issues:
@@ -94,19 +106,42 @@ class TaskManager:
             historys[issue.id] = issue.journals
         return historys
 
-    def upload_history(self, issues, historys, tracker_ids, status_ids, issue_ids, user_ids):
-        #                       TODO: A dátum mórosítása adatbázisban(readonly attributum az API-ban)
-        #                       TODO: A felhasználó szerkesztése arra, aki létrehozta.  
+    def upload_historys(self, issues, historys, tracker_ids, status_ids, issue_ids, user_ids):
         for issue in issues:
             for history in historys[issue.id]:
                 redmine_issue = self.redmine.issue.get(issue_ids[issue.id])
                 isUpdated = False
                 for detail in history.details:
+                    if detail["property"] == "attachment":
+                        for attachment in issue.attachments:
+                            if str(attachment.id) == detail["name"]:
+                                self.upload_attachment(redmine_issue, attachment)
                     if self.updater(redmine_issue, detail["name"], detail["new_value"], tracker_ids, status_ids, user_ids, issue_ids):
-                        isUpdated = True     
+                        isUpdated = True
                 if isUpdated:
                     redmine_issue.save()
                
+    def upload_attachment(self, issue, attachment):
+        # download file
+        url = attachment.content_url
+        response = requests.get(url)
+        file = response.content
+        filename = attachment.filename
+        content_type = attachment.content_type
+        description = attachment.description
+        
+        # upload file:
+        url = self.ip + "/uploads.json"
+        x = requests.post(url, data=file, headers = {"Content-Type": "application/octet-stream"}, auth = (self.uname, self.pwd))
+        if x.status_code == 201:
+            token = json.loads(x.text)['upload']['token']
+        else:
+            print("The upload of the file was unsuccessful. Filename: " + filename)
+        
+        # update issue with the token
+        issue.uploads = [{"token": token, "filename": filename, "content_type": content_type, "description": description}]
+        issue.save()
+          
     def updater(self, issue, name, value, tracker_ids, status_ids, user_ids, issue_ids):        
         if name == "tracker_id":
             tracker_id = tracker_ids[value]
@@ -140,6 +175,13 @@ class TaskManager:
         else:
             return False
         return True
+    
+    def update_journals(self, host, user, pwd, database, issues, issue_historys, issue_ids, users_ids):
+        database = DB(host, user, pwd, database)
+        
+        for issue in issues:
+            for history in issue_historys:
+                database.update_journal(history["created_on"], users_ids[history["user"]["id"]], issue_ids[issue.id])
 
     @property    
     def ip(self) -> Any:
