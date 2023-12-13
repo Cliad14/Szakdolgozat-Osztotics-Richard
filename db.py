@@ -1,6 +1,6 @@
 import mysql.connector
 
-class DB:
+class Database:
     
     def __init__(self, host, user, pwd, database) -> None:
         self.mydb = mysql.connector.connect(
@@ -17,7 +17,4 @@ class DB:
 
         mycursor.execute(sql, val)
         self.mydb.commit()
-
-        # print(mycursor.rowcount, "record(s) affected")
-
     

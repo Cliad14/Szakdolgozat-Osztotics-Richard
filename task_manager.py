@@ -1,4 +1,4 @@
-from db import DB
+from db import Database
 from typing import Any
 from redminelib import Redmine
 import requests
@@ -86,7 +86,7 @@ class TaskManager:
     def initialize_issue(self, project_id):
         issue = self._redmine.issue.new()
         issue.project_id = project_id 
-        issue.subject = "Init issue for migration"
+        issue.subject = "Initialize issue for migration"
         issue.save() 
         
     def get_new_issue_ids(self, src_issues):
@@ -95,7 +95,7 @@ class TaskManager:
         )
         issue = issues[0]
         
-        if issue.subject == "Init issue for migration":
+        if issue.subject == "Initialize issue for migration":
             next_issue_id = issue.id + 1    
             issue_ids = {}
             for issue in src_issues:
@@ -137,9 +137,9 @@ class TaskManager:
         
         # upload file:
         url = self.ip + "/uploads.json"
-        x = requests.post(url, data=file, headers = {"Content-Type": "application/octet-stream"}, auth = (self.uname, self.pwd))
-        if x.status_code == 201:
-            token = json.loads(x.text)['upload']['token']
+        response = requests.post(url, data=file, headers = {"Content-Type": "application/octet-stream"}, auth = (self.uname, self.pwd))
+        if response.status_code == 201:
+            token = json.loads(response.text)['upload']['token']
         else:
             print("The upload of the file was unsuccessful. Filename: " + filename)
         
@@ -182,7 +182,7 @@ class TaskManager:
         return True
     
     def update_journals(self, database, original_journals, users_ids, new_issues):
-        database = DB(database["host"], database["user"], database["password"], database["database"])
+        database = Database(database["host"], database["user"], database["password"], database["database"])
         for new_issue in new_issues:
             for new_journal in new_issue.journals:
                 if new_journal["notes"] != "":
