@@ -1,5 +1,7 @@
 # Szakdolgozat-Osztotics-Richard
 
+## A Redmine szerveren engedélyezni kell az API-val való hozzáférést a /settings oldalon az API fül alatt!
+
 A resources mappában lévő json fileokkal lehet konfiguráni az alkalmazást.
 
 Például:
